@@ -1,0 +1,3 @@
+/pintos/pintos-anon/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/pintos/pintos-anon/cmake-build-debug/CMakeFiles/edit_cache.dir
+/pintos/pintos-anon/cmake-build-debug/CMakeFiles/pintos_anon.dir
