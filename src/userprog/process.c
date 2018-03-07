@@ -31,10 +31,10 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
 
-  char *token, *save_ptr;
-  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
-       token = strtok_r (NULL, " ", &save_ptr))
-    printf ("'%s'\n", token);
+//  char *token, *save_ptr;
+//  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
+//       token = strtok_r (NULL, " ", &save_ptr))
+//    printf ("'%s'\n", token);
 
 
   /* Make a copy of FILE_NAME.
@@ -60,17 +60,41 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  char *argv[16];
+  int count = 0;
+
+  char *token, *save_ptr;
+  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
+       token = strtok_r (NULL, " ", &save_ptr)) {
+    argv[count] = token + '\0';
+    count++;
+    printf("%s found\n", token);
+  }
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (argv[0], &if_.eip, &if_.esp);
 
+  void **esp = if_.esp;
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
+  if (!success) {
     thread_exit ();
+  } else {
+    for(int i = count - 1; i >= 0; i--) {
+      *(--esp) = (argv[i]);
+    }
+    *(--esp) = 0;
+    for(int i = count - 1; i >= 0; i--) {
+      *(--esp) = &(argv[i]);
+    }
+    *(--esp) = &argv;
+    *(--esp) = count;
+    *(--esp) = 0;
+  }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -309,7 +333,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
           break;
         }
     }
-
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
@@ -446,7 +469,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
     }
