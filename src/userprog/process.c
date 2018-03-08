@@ -66,7 +66,7 @@ start_process (void *file_name_)
   char *token, *save_ptr;
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
        token = strtok_r (NULL, " ", &save_ptr)) {
-    argv[count] = token + '\0';
+    argv[count] = token;
     count++;
     printf("%s found\n", token);
   }
@@ -78,22 +78,33 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (argv[0], &if_.eip, &if_.esp);
 
-  void **esp = if_.esp;
+  void **esp = &if_.esp;
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) {
     thread_exit ();
   } else {
+
     for(int i = count - 1; i >= 0; i--) {
-      *(--esp) = (argv[i]);
+      *esp -= sizeof(strlen(argv[i]));
+      memcpy(*esp, argv[i], strlen(argv[i]));
     }
-    *(--esp) = 0;
-    for(int i = count - 1; i >= 0; i--) {
-      *(--esp) = &(argv[i]);
+    size_t offset = (size_t) *esp % 4;
+    *esp -= offset;
+//    *esp -= sizeof(void*);
+//    memcpy(*esp, 0, sizeof(void*));
+    for(int i = count; i >= 0; i--) {
+      *esp -= sizeof(char*);
+      memcpy(*esp, &argv[i], sizeof(char*));
     }
-    *(--esp) = &argv;
-    *(--esp) = count;
-    *(--esp) = 0;
+    *esp -= sizeof(char**);
+    memcpy(*esp, &argv, sizeof(char**));
+
+    *esp -= sizeof(int);
+    memcpy(*esp, &count, sizeof(int));
+
+    *esp -= sizeof(char*);
+    memcpy(*esp, &argv[count], sizeof(void *));
   }
 
   /* Start the user process by simulating a return from an
