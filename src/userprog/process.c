@@ -84,10 +84,9 @@ start_process (void *file_name_)
   if (!success) {
     thread_exit ();
   } else {
-
     for(int i = count - 1; i >= 0; i--) {
       *esp -= sizeof(strlen(argv[i]));
-      memcpy(*esp, argv[i], strlen(argv[i]));
+      memcpy(*esp, argv[i], strlen(argv[i]) + 1);
     }
     size_t offset = (size_t) *esp % 4;
     *esp -= offset;
@@ -97,14 +96,20 @@ start_process (void *file_name_)
       *esp -= sizeof(char*);
       memcpy(*esp, &argv[i], sizeof(char*));
     }
+    //Reduce the esp by size of a char**
     *esp -= sizeof(char**);
+    //Copy argv into **esp, which is a char**
     memcpy(*esp, &argv, sizeof(char**));
 
+    //Reduce the esp by size of int
     *esp -= sizeof(int);
+    //Copy count into **esp, which is an int
     memcpy(*esp, &count, sizeof(int));
 
-    *esp -= sizeof(char*);
-    memcpy(*esp, &argv[count], sizeof(void *));
+    //Reduce the esp by size of a return address
+    *esp -= sizeof(void*);
+    //Copy zeros for return address into **esp.
+    memset(*esp, 0, sizeof(void *));
   }
 
   /* Start the user process by simulating a return from an
@@ -138,7 +143,7 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
 
-  printf("%s: exit(%d)\n", cur->name, -1);
+  printf("%s: exit(%d)\n", cur->name, -6);
 
   uint32_t *pd;
 
