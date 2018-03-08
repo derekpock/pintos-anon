@@ -85,15 +85,21 @@ start_process (void *file_name_)
     thread_exit ();
   } else {
     for(int i = count - 1; i >= 0; i--) {
-      *esp -= sizeof(strlen(argv[i]));
+      //Move esp back by the size of the string + 1 ending character
+      *esp -= sizeof(strlen(argv[i]) + 1);
+      //Copy the *argv[i] (actual chars) into the **esp, which is a length of strlen + 1
       memcpy(*esp, argv[i], strlen(argv[i]) + 1);
     }
+    //Find the offset of the esp, round it to 4 bytes.
     size_t offset = (size_t) *esp % 4;
+    //Move it by the offset
     *esp -= offset;
 //    *esp -= sizeof(void*);
 //    memcpy(*esp, 0, sizeof(void*));
     for(int i = count; i >= 0; i--) {
+      //Reduce the esp by size of a char*
       *esp -= sizeof(char*);
+      //Copy argv[i] (address) into **esp, which is a char*
       memcpy(*esp, &argv[i], sizeof(char*));
     }
     //Reduce the esp by size of a char**
