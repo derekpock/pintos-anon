@@ -560,7 +560,6 @@ add_executable(pintos_anon
         src/tests/tests.pm
         src/threads/bochsout.txt
         src/threads/bochsrc.txt
-        src/threads/Design1.txt
         src/threads/flags.h
         src/threads/init.c
         src/threads/init.h

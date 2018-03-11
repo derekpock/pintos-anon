@@ -1738,9 +1738,6 @@
 		<Unit filename="/pintos/pintos-anon/src/tests/vm/sample.txt">
 			<Option target="pintos_anon"/>
 		</Unit>
-		<Unit filename="/pintos/pintos-anon/src/threads/Design1.txt">
-			<Option target="pintos_anon"/>
-		</Unit>
 		<Unit filename="/pintos/pintos-anon/src/threads/Make.vars">
 			<Option target="pintos_anon"/>
 		</Unit>
