@@ -22,9 +22,12 @@ syscall_handler (struct intr_frame *f UNUSED)
   switch (call) {
     case SYS_HALT:  //no args
       shutdown_power_off();
-    case SYS_EXIT:  //int status
-      printf("called exit\n");
-      break;
+    case SYS_EXIT:  //int intArg1
+      f->esp += sizeof(int);
+      int exitValue;
+      memcpy(&exitValue, f->esp, sizeof(int));
+      thread_current()->exitCode = exitValue;
+      thread_exit();
     case SYS_EXEC:  //const char *file - return pid_t
       break;
     case SYS_WAIT:  //pid_t pid - return int
