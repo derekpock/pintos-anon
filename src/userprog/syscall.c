@@ -4,6 +4,7 @@
 #include <string.h>
 #include <devices/shutdown.h>
 #include <filesys/filesys.h>
+#include <devices/input.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "process.h"
@@ -155,11 +156,37 @@ syscall_handler (struct intr_frame *f UNUSED)
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
 
+      int readFileId;
+      memcpy(&readFileId, f->esp, sizeof(int));
+      f->esp += sizeof(int);
+
+      char *bufferRead;
+      memcpy(&bufferRead, f->esp, sizeof(void*));
+      f->esp += sizeof(void*);
+
+      unsigned readSize;
+      memcpy(&readSize, f->esp, sizeof(unsigned));
+      f->esp += sizeof(unsigned);
+
       //Move esp back to first position
+      f->esp -= sizeof(unsigned);
+      f->esp -= sizeof(void*);
+      f->esp -= sizeof(int);
       f->esp -= sizeof(void **);
 
 
-      printf("called read\n");
+      if(readFileId == 0) {
+        //Read from stdin
+        for(int bufferPosition = 0;
+            readSize - (bufferPosition * sizeof(uint8_t)) > 0;
+            bufferPosition++) {
+          uint8_t byte = input_getc();
+          *(bufferRead + bufferPosition) = byte;
+        }
+      } else {
+        //Read from a file
+
+      }
       break;
 
 
