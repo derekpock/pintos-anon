@@ -3,6 +3,7 @@
 #include <syscall-nr.h>
 #include <string.h>
 #include <devices/shutdown.h>
+#include <filesys/filesys.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "process.h"
@@ -45,12 +46,30 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_WAIT:  //pid_t pid - return int
       break;
     case SYS_CREATE:    //unsigned initial_size, const char *file - return bool
+      f->esp += sizeof(unsigned);
+      unsigned initialSize;
+      memcpy(&initialSize, f->esp, sizeof(unsigned));
+
+      f->esp += sizeof(char**);
+      char* newFile;
+      memcpy(&newFile, f->esp, sizeof(char**));
+
+      bool isFileCreated = filesys_create(newFile, initialSize);
+      memcpy(&(f->eax), &isFileCreated, sizeof(bool));
       break;
     case SYS_REMOVE:    //const char *file - return bool
+      //TODO what if removing an open file?
+      f->esp += sizeof(char**);
+      char* removingFile;
+      memcpy(&removingFile, f->esp, sizeof(char**));
+
+      bool isFileDeleted = filesys_remove(removingFile);
+      memcpy(&(f->eax), &isFileDeleted, sizeof(bool));
       break;
     case SYS_OPEN:      //const char *file - return int
       break;
     case SYS_FILESIZE:  //int fd - return int
+
       break;
     case SYS_READ:      //unsigned size, void *buffer, int fd - return int
       printf("called read\n");
