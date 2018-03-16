@@ -149,7 +149,7 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
 
-  printf("%s: exit(%d)\n", cur->name, -6);
+  printf("%s: exit(%d)\n", cur->name, cur->exitCode);
 
   uint32_t *pd;
 
