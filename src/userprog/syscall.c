@@ -5,6 +5,7 @@
 #include <devices/shutdown.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "process.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -29,6 +30,17 @@ syscall_handler (struct intr_frame *f UNUSED)
       thread_current()->exitCode = exitValue;
       thread_exit();
     case SYS_EXEC:  //const char *file - return pid_t
+      f->esp += sizeof(char**);
+      char* file;
+      memcpy(&file, f->esp, sizeof(char**));
+      int processStatus = process_execute(file);
+      //We know that TID_ERROR has the value of -1 already. No need to re-set it.
+//      if(processStatus == TID_ERROR) {
+//        processStatus = -1;
+//      }
+      memcpy(&(f->eax), &processStatus, sizeof(int));
+      //TODO don't return until we know that the process started successfully or failed
+      //TODO this might be enough to work
       break;
     case SYS_WAIT:  //pid_t pid - return int
       break;
