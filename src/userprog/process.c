@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <threads/malloc.h>
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
@@ -44,8 +45,13 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  char *fn_name_str = palloc_get_page(0);
+  if (fn_name_str == NULL)
+    return TID_ERROR;
+  strlcpy (fn_name_str, file_name, PGSIZE);
+
   char *save_ptr;
-  char *executableName = strtok_r(fn_copy, " ", &save_ptr);
+  char *executableName = strtok_r(fn_name_str, " ", &save_ptr);
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (executableName, PRI_DEFAULT, start_process, fn_copy);
@@ -64,15 +70,17 @@ start_process (void *file_name_)
   bool success;
 
   //TODO this needs to be dynamic and expanding with a 4kb limit
-  char *argv[16];
+  char **argv = malloc(sizeof(char*) * 1);
   int count = 0;
 
   char *token, *save_ptr;
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
        token = strtok_r (NULL, " ", &save_ptr)) {
-    argv[count] = token;
+    argv[count] = malloc(strlen(token) + 1);
+    strlcpy(argv[count], token, strlen(token) + 1 );
+//    argv[count] = token;
     count++;
-//    printf("%s found\n", token);
+    argv = realloc(argv, sizeof(char*) * (count + 1));
   }
 
   /* Initialize interrupt frame and load executable. */
@@ -88,9 +96,13 @@ start_process (void *file_name_)
   if (!success) {
     thread_exit ();
   } else {
-    for(int i = count - 1; i >= 0; i--) {
+    char** addresses = malloc(sizeof(char*) * (count + 1));
+    addresses[count] = 0;
+    for(int i = count - 1; i > 0; i--) {
       //Move esp back by the size of the string + 1 ending character
-      *esp -= sizeof(strlen(argv[i]) + 1);
+      *esp -= (strlen(argv[i]) + 1);
+      //Copy the address of esp (*esp) into the addresses list
+      memcpy(&(addresses[i]), esp, sizeof(char*));
       //Copy the *argv[i] (actual chars) into the **esp, which is a length of strlen + 1
       memcpy(*esp, argv[i], strlen(argv[i]) + 1);
     }
@@ -100,19 +112,22 @@ start_process (void *file_name_)
     *esp -= offset;
 //    *esp -= sizeof(void*);
 //    memcpy(*esp, 0, sizeof(void*));
-    for(int i = count; i >= 0; i--) {
+    for(int i = count; i > 0; i--) {
       //Reduce the esp by size of a char*
       *esp -= sizeof(char*);
-      //Copy argv[i] (address) into **esp, which is a char*
-      memcpy(*esp, &argv[i], sizeof(char*));
+      //Copy address into **esp, which is a char*
+      char* oneAddr= *(addresses + i);
+      memcpy(*esp, &oneAddr, sizeof(char*));
     }
+    void* argvAddr = *esp;
     //Reduce the esp by size of a char**
     *esp -= sizeof(char**);
     //Copy argv into **esp, which is a char**
-    memcpy(*esp, &argv, sizeof(char**));
+    memcpy(*esp, &argvAddr, sizeof(char**));
 
     //Reduce the esp by size of int
     *esp -= sizeof(int);
+    count--; //Count took into account the first argument, the name of the program. Ignore it.
     //Copy count into **esp, which is an int
     memcpy(*esp, &count, sizeof(int));
 
@@ -120,7 +135,14 @@ start_process (void *file_name_)
     *esp -= sizeof(void*);
     //Copy zeros for return address into **esp.
     memset(*esp, 0, sizeof(void *));
+
+    free(addresses);
   }
+
+  for(int i = 0; i <= count; i++) {
+    free(argv[i]);
+  }
+  free(argv);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
