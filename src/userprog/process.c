@@ -68,7 +68,7 @@ start_process (void *file_name_)
        token = strtok_r (NULL, " ", &save_ptr)) {
     argv[count] = token;
     count++;
-    printf("%s found\n", token);
+//    printf("%s found\n", token);
   }
 
   /* Initialize interrupt frame and load executable. */
