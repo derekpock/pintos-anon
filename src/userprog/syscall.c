@@ -25,16 +25,31 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_HALT:  //no args
       shutdown_power_off();
     case SYS_EXIT:  //int intArg1
-      f->esp += sizeof(int);
+      //Move pointer back before the return value, to the first argument on the stack.
+      f->esp += sizeof(void **);
+
       int exitValue;
-      memcpy(&exitValue, f->esp, sizeof(int));
+      memcpy(&exitValue, f->esp, sizeof(int));  //copy value at esp into exitValue
+      f->esp += sizeof(int);  //Move esp "up" to next argument, if exists.
+
+      //Move esp back down to the original value.
+      f->esp -= sizeof(int);
+      f->esp -= sizeof(void **);
+
+      //Perform operations with data.
       thread_current()->exitCode = exitValue;
       thread_exit();
     case SYS_EXEC:  //const char *file - return pid_t
-      f->esp += sizeof(char**);
+      f->esp += sizeof(void **);
+
       char* file;
-      memcpy(&file, f->esp, sizeof(char**));
+      memcpy(&file, f->esp, sizeof(char*));
       int processStatus = process_execute(file);
+      f->esp += sizeof(char*);
+
+
+      f->esp -= sizeof(char*);
+      f->esp -= sizeof(void**);
       //We know that TID_ERROR has the value of -1 already. No need to re-set it.
 //      if(processStatus == TID_ERROR) {
 //        processStatus = -1;
@@ -45,23 +60,23 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_WAIT:  //pid_t pid - return int
       break;
-    case SYS_CREATE:    //unsigned initial_size, const char *file - return bool
+    case SYS_CREATE:    //const char *file, unsigned initial_size - return bool
+      f->esp += sizeof(char*);
+      char* newFile;
+      memcpy(&newFile, f->esp, sizeof(char*));
+
       f->esp += sizeof(unsigned);
       unsigned initialSize;
       memcpy(&initialSize, f->esp, sizeof(unsigned));
-
-      f->esp += sizeof(char**);
-      char* newFile;
-      memcpy(&newFile, f->esp, sizeof(char**));
 
       bool isFileCreated = filesys_create(newFile, initialSize);
       memcpy(&(f->eax), &isFileCreated, sizeof(bool));
       break;
     case SYS_REMOVE:    //const char *file - return bool
       //TODO what if removing an open file?
-      f->esp += sizeof(char**);
+      f->esp += sizeof(char*);
       char* removingFile;
-      memcpy(&removingFile, f->esp, sizeof(char**));
+      memcpy(&removingFile, f->esp, sizeof(char*));
 
       bool isFileDeleted = filesys_remove(removingFile);
       memcpy(&(f->eax), &isFileDeleted, sizeof(bool));
@@ -71,13 +86,49 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_FILESIZE:  //int fd - return int
 
       break;
-    case SYS_READ:      //unsigned size, void *buffer, int fd - return int
+    case SYS_READ:      //int fd, void *buffer, unsigned size- return int
       printf("called read\n");
       break;
-    case SYS_WRITE:     //unsigned size, const void *buffer, int fd - return int
-      printf("called write\n");
+    case SYS_WRITE:     //int fd, const void *buffer, unsigned size - return int
+      //Move pointer back before the return value, to the first argument on the stack.
+      f->esp += sizeof(void **);
+
+      //Get argument from the stack (normal getting, this is the first).
+
+      //Getting integer
+      int writeFileId;
+      memcpy(&writeFileId, f->esp, sizeof(int));
+      f->esp += sizeof(int);
+
+      //Get void pointer
+      void* writeBuffer;
+      memcpy(&writeBuffer, f->esp, sizeof(void *));
+      f->esp += sizeof(void *);
+
+      //Getting unsigned value
+      unsigned sizeToWrite;
+      memcpy(&sizeToWrite, f->esp, sizeof(unsigned)); //copy value at esp into sizeToWrite
+      f->esp += sizeof(unsigned); //Move pointer up before this value.
+
+      //Move esp back down to the original value.
+      f->esp -= sizeof(int);
+      f->esp -= sizeof(void*);
+      f->esp -= sizeof(unsigned);
+      f->esp -= sizeof(void**);
+
+      //Now perform operations with necessary values.
+      if(writeFileId == 1) {
+        //We need to write to the console.
+        putbuf(writeBuffer, sizeToWrite);
+        //Return the entire buffer size
+        memcpy(&(f->eax), &sizeToWrite, sizeof(unsigned));
+      } else {
+        printf("Writing to %d", writeFileId);
+        //Find the file..
+        //TODO
+      }
       break;
-    case SYS_SEEK:      //unsigned position, int fd
+    case SYS_SEEK:      //int fd, unsigned position
       break;
     case SYS_TELL:      //int fd - return unsigned
       break;
@@ -88,7 +139,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       PANIC("Oh noes! This hasn't been implemented yet!");
   }
 
-  printf ("system call!\n");
-  thread_exit ();
+//  printf ("system call!\n");
+//  thread_exit ();
 }
 
