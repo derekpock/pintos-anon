@@ -5,6 +5,7 @@
 #include <devices/shutdown.h>
 #include <filesys/filesys.h>
 #include <devices/input.h>
+#include <lib/user/syscall.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "process.h"
@@ -25,7 +26,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   switch (call) {
     case SYS_HALT:  //no args
       shutdown_power_off();
-
+      //Done
 
 
     case SYS_EXIT:  //int intArg1
@@ -44,6 +45,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       //Perform operations with data.
       thread_current()->exitCode = exitValue;
       thread_exit();
+      //TODO need to return wait value to waiters
 
 
 
@@ -53,18 +55,20 @@ syscall_handler (struct intr_frame *f UNUSED)
 
       char* file;
       memcpy(&file, f->esp, sizeof(char*));
-      int processStatus = process_execute(file);
       f->esp += sizeof(char*);
 
       //Move esp back down to the original value.
       f->esp -= sizeof(char*);
       f->esp -= sizeof(void**);
 
+      //TODO need to verify the file address
 
+      int processStatus = process_execute(file);
       //We know that TID_ERROR has the value of -1 already. No need to re-set it.
 //      if(processStatus == TID_ERROR) {
 //        processStatus = -1;
 //      }
+
       memcpy(&(f->eax), &processStatus, sizeof(int));
       //TODO don't return until we know that the process started successfully or failed
       //TODO this might be enough to work
@@ -76,10 +80,16 @@ syscall_handler (struct intr_frame *f UNUSED)
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
 
+      pid_t waitOnPid;
+      memcpy(&waitOnPid, f->esp, sizeof(pid_t));
+      f->esp += sizeof(pid_t);
+
       //Move esp back down to the original value.
+      f->esp -= sizeof(pid_t);
       f->esp -= sizeof(void **);
 
 
+      process_wait(waitOnPid);
       break;
 
 
