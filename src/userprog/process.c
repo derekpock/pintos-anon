@@ -19,6 +19,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
+#include "threads/thread.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -57,7 +58,15 @@ process_execute (const char *file_name)
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (executableName, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (fn_copy);
+
+  if(tid != TID_ERROR) {
+    //Add this to the list of children for this process
+    struct intMap* map = createIntMap();
+    map->key = thread_current()->tid;
+    map->value = tid;
+    list_push_back(&parentChildList, &map->elem);
+  }
   return tid;
 }
 
@@ -70,7 +79,6 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
-  //TODO this needs to be dynamic and expanding with a 4kb limit
   char **argv = malloc(sizeof(char*) * 1);
   int count = 0;
 
@@ -99,7 +107,7 @@ start_process (void *file_name_)
   } else {
     char** addresses = malloc(sizeof(char*) * (count + 1));
     addresses[count] = 0;
-    for(int i = count - 1; i > 0; i--) {
+    for(int i = count - 1; i >= 0; i--) {
       //Move esp back by the size of the string + 1 ending character
       *esp -= (strlen(argv[i]) + 1);
       //Copy the address of esp (*esp) into the addresses list
@@ -113,7 +121,7 @@ start_process (void *file_name_)
     *esp -= offset;
 //    *esp -= sizeof(void*);
 //    memcpy(*esp, 0, sizeof(void*));
-    for(int i = count; i > 0; i--) {
+    for(int i = count; i >= 0; i--) {
       //Reduce the esp by size of a char*
       *esp -= sizeof(char*);
       //Copy address into **esp, which is a char*
@@ -128,7 +136,7 @@ start_process (void *file_name_)
 
     //Reduce the esp by size of int
     *esp -= sizeof(int);
-    count--; //Count took into account the first argument, the name of the program. Ignore it.
+//    count--; //Count took into account the first argument, the name of the program. Ignore it.
     //Copy count into **esp, which is an int
     memcpy(*esp, &count, sizeof(int));
 
@@ -140,7 +148,7 @@ start_process (void *file_name_)
     free(addresses);
   }
 
-  for(int i = 0; i <= count; i++) {
+  for(int i = 0; i < count; i++) {
     free(argv[i]);
   }
   free(argv);
@@ -165,12 +173,75 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid)
 {
+  //First check if child_tid is a direct child of thread_current()
+  bool isChild = false;
+  struct list_elem *e;
+  for (e = list_begin (&parentChildList); e != list_end (&parentChildList);
+       e = list_next (e)) {
+    struct intMap *map = list_entry (e, struct intMap, elem);
+    if(map->key == thread_current()->tid
+        && map->value == child_tid) {
+      isChild = true;
+      break;
+    }
+  }
 
-  //TODO fix
-  while(true);
-  return -1;
+  if(isChild) {
+    //Now check if we are already waiting on them.
+    bool isAlreadyWaiting = false;
+    for (e = list_begin (&parentWaitingOnChildrenList); e != list_end (&parentWaitingOnChildrenList);
+         e = list_next (e)) {
+      struct intMap *map = list_entry (e, struct intMap, elem);
+      if(map->key == thread_current()->tid
+         && map->value == child_tid) {
+        isAlreadyWaiting = true;
+        break;
+      }
+    }
+    if(isAlreadyWaiting) {
+      return -1;
+    } else {
+      //We are not waiting and is child. Now mark that we will be waiting on them.
+      struct intMap* nowWatching = createIntMap();
+      nowWatching->key = thread_current()->tid;
+      nowWatching->value = child_tid;
+      list_push_back(&parentWaitingOnChildrenList, &nowWatching->elem);
+
+      //Now begin the wait on the semaphore. As soon as we grab it, release it incase other's wait on it (for whatever reason).
+      bool waited = false;
+      for (e = list_begin (&semaWait_list); e != list_end (&semaWait_list);
+           e = list_next (e)) {
+        struct semaMap *map = list_entry (e, struct semaMap, elem);
+        if(map->key == child_tid) {
+          waited = true;
+          sema_down(&map->sema);
+          sema_up(&map->sema);
+          break;
+        }
+      }
+
+      list_remove(&nowWatching->elem);
+      if(waited) {
+        //We now know that the process has exited - get it's exit code.
+        for (e = list_begin (&threadExit_list); e != list_end (&threadExit_list);
+             e = list_next (e)) {
+          struct intMap *map = list_entry (e, struct intMap, elem);
+          if(map->key == child_tid) {
+//            printf("returning from %d waiting on %d with status %d\n", thread_current()->tid, child_tid, map->value);
+            return map->value;
+          }
+        }
+        PANIC("Couldn't find the exit value.");
+      } else {
+        //We actually never waited, couldn't find the sema.
+        PANIC("Couldn't find the thread's sema to wait on!");
+      }
+    }
+  } else {
+    return -1;
+  }
 }
 
 /* Free the current process's resources. */
@@ -178,8 +249,25 @@ void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
+  if(cur->executedFile != NULL) {
+    file_allow_write(cur->executedFile);
+    file_close(cur->executedFile);
+  }
+  closeFilesFromPid(cur->tid);
 
-  printf("%s: exit(%d)\n", cur->name, cur->exitCode);
+  int exitCode = -1;
+  struct list_elem *e;
+  //Find the pid and get the exit status.
+  for (e = list_begin (&threadExit_list); e != list_end (&threadExit_list);
+       e = list_next (e)) {
+    struct intMap *map = list_entry (e, struct intMap, elem);
+    if(map->key == cur->tid) {
+      exitCode = map->value;
+      break;
+    }
+  }
+
+  printf("%s: exit(%d)\n", cur->name, exitCode);
 
   uint32_t *pd;
 
@@ -300,6 +388,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   bool success = false;
   int i;
 
+  lock_acquire(&fileIOLock);
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
@@ -396,7 +485,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  if(!success) {
+    file_close (file);
+  } else {
+    t->executedFile = file;
+    file_deny_write(file);
+  }
+  lock_release(&fileIOLock);
   return success;
 }
 

@@ -6,22 +6,92 @@
 #include <filesys/filesys.h>
 #include <devices/input.h>
 #include <lib/user/syscall.h>
+#include <filesys/file.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "process.h"
+#include <threads/malloc.h>
+
+struct fileItem {
+  int fd;
+  int pidOwner;
+  char* name;
+  unsigned position;
+  struct file* fsFile;
+  struct list_elem elem;
+};
 
 static void syscall_handler (struct intr_frame *);
+static struct fileItem* createNewFileItem(int fd, int pid, const char* name, struct file* fsFile);
+static struct list openFilesList;
+static int nextFd;
 
 void
-syscall_init (void) 
+syscall_init (void)
 {
+  list_init(&parentChildList);
+  list_init(&parentWaitingOnChildrenList);
+  lock_init(&fileIOLock);
+  list_init(&openFilesList);
+  nextFd = 2;
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+}
+
+struct fileItem* createNewFileItem(int fd, int pid, const char* name, struct file* fsFile) {
+  struct fileItem* item;
+  item = malloc(sizeof(struct fileItem));
+  if(item == NULL) {
+    PANIC("Unable to get memory for newNode!");
+  }
+  item->fd = fd;
+  item->pidOwner = pid;
+  item->name = malloc(strlen(name) + 1);
+  strlcpy(item->name, name, strlen(name) + 1);
+  item->position = 0;
+  item->fsFile = fsFile;
+  return item;
+}
+
+// MUST have file IO lock before calling this
+//TODO call this for all force closed processes
+static void closeFile(struct fileItem* fileClose) {
+  ASSERT(fileIOLock.holder == thread_current());
+  list_remove(&fileClose->elem);
+  struct list_elem* e;
+  bool fileStillOpen = false;
+  for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
+       e = list_next (e)) {
+    struct fileItem *item = list_entry (e, struct fileItem, elem);
+    if(item->fsFile == fileClose->fsFile) {
+      fileStillOpen = true;
+      break;
+    }
+  }
+  if(!fileStillOpen) {
+    file_close(fileClose->fsFile);
+  }
+  free(fileClose->name);
+  free(fileClose);
+}
+
+void closeFilesFromPid(int pid) {
+  lock_acquire(&fileIOLock);
+  struct list_elem* e;
+  for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
+       e = list_next (e)) {
+    struct fileItem *item = list_entry (e, struct fileItem, elem);
+    if(item->pidOwner == pid) {
+      closeFile(item);
+    }
+  }
+  lock_release(&fileIOLock);
 }
 
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   int call;
+  struct list_elem *e;
   memcpy(&call, f->esp, sizeof(int));
   switch (call) {
     case SYS_HALT:  //no args
@@ -43,9 +113,17 @@ syscall_handler (struct intr_frame *f UNUSED)
 
 
       //Perform operations with data.
-      thread_current()->exitCode = exitValue;
+      //Find our pid and set the exit status.
+      for (e = list_begin (&threadExit_list); e != list_end (&threadExit_list);
+           e = list_next (e)) {
+        struct intMap *map = list_entry (e, struct intMap, elem);
+        if(map->key == thread_current()->tid) {
+          map->value = exitValue;
+          break;
+        }
+      }
+      closeFilesFromPid(thread_current()->tid);
       thread_exit();
-      //TODO need to return wait value to waiters
 
 
 
@@ -61,17 +139,10 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->esp -= sizeof(char*);
       f->esp -= sizeof(void**);
 
-      //TODO need to verify the file address
 
       int processStatus = process_execute(file);
       //We know that TID_ERROR has the value of -1 already. No need to re-set it.
-//      if(processStatus == TID_ERROR) {
-//        processStatus = -1;
-//      }
-
       memcpy(&(f->eax), &processStatus, sizeof(int));
-      //TODO don't return until we know that the process started successfully or failed
-      //TODO this might be enough to work
       break;
 
 
@@ -89,7 +160,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->esp -= sizeof(void **);
 
 
-      process_wait(waitOnPid);
+      int waitResult = process_wait(waitOnPid);
+      memcpy(&(f->eax), &waitResult, sizeof(int));
       break;
 
 
@@ -112,7 +184,10 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->esp -= sizeof(void **);
 
 
+      lock_acquire(&fileIOLock);
       bool isFileCreated = filesys_create(newFile, initialSize);
+      lock_release(&fileIOLock);
+
       memcpy(&(f->eax), &isFileCreated, sizeof(bool));
       break;
 
@@ -132,7 +207,9 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->esp -= sizeof(void **);
 
 
+      lock_acquire(&fileIOLock);
       bool isFileDeleted = filesys_remove(removingFile);
+      lock_release(&fileIOLock);
       memcpy(&(f->eax), &isFileDeleted, sizeof(bool));
       break;
 
@@ -142,9 +219,39 @@ syscall_handler (struct intr_frame *f UNUSED)
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
 
+      char* openingFile;
+      memcpy(&openingFile, f->esp, sizeof(char*));
+      f->esp += sizeof(char*);
+
       //Move esp back to first position
+      f->esp -= sizeof(char*);
       f->esp -= sizeof(void **);
 
+      //Check if the file is already open.
+      int openFileRetVal = -1;
+      bool isFileOpen = false;
+      lock_acquire(&fileIOLock);
+      for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
+           e = list_next (e)) {
+        struct fileItem *item = list_entry (e, struct fileItem, elem);
+        if(strcmp(openingFile, item->name) == 0) {
+          isFileOpen = true;
+          struct fileItem* newFileItem = createNewFileItem(nextFd++, thread_current()->tid, openingFile, item->fsFile);
+          list_push_back(&openFilesList, &newFileItem->elem);
+          openFileRetVal = newFileItem->fd;
+          break;
+        }
+      }
+      if(!isFileOpen) {
+        struct file* fsFile = filesys_open(openingFile);
+        if(fsFile != NULL) {
+          struct fileItem* newFileItem = createNewFileItem(nextFd++, thread_current()->tid, openingFile, fsFile);
+          list_push_back(&openFilesList, &newFileItem->elem);
+          openFileRetVal = newFileItem->fd;
+        }
+      }
+      lock_release(&fileIOLock);
+      memcpy(&(f->eax), &openFileRetVal, sizeof(int));
 
       break;
 
@@ -154,10 +261,31 @@ syscall_handler (struct intr_frame *f UNUSED)
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
 
+      int fileSizeCheckFd;
+      memcpy(&fileSizeCheckFd, f->esp, sizeof(int));
+      f->esp += sizeof(int);
+
       //Move esp back to first position
+      f->esp -= sizeof(int);
       f->esp -= sizeof(void **);
 
 
+      off_t fileSizeCheckRetVal = -1;
+      lock_acquire(&fileIOLock);
+      for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
+           e = list_next (e)) {
+        struct fileItem *item = list_entry (e, struct fileItem, elem);
+        if(item->fd == fileSizeCheckFd) {
+          if(item->pidOwner != thread_current()->tid) {
+            //doesn't own the open file!
+          } else {
+            fileSizeCheckRetVal = file_length(item->fsFile);
+          }
+          break;
+        }
+      }
+      lock_release(&fileIOLock);
+      memcpy(&(f->eax), &fileSizeCheckRetVal, sizeof(off_t));
       break;
 
 
@@ -174,8 +302,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       memcpy(&bufferRead, f->esp, sizeof(void*));
       f->esp += sizeof(void*);
 
-      unsigned readSize;
-      memcpy(&readSize, f->esp, sizeof(unsigned));
+      unsigned requestedReadSize;
+      memcpy(&requestedReadSize, f->esp, sizeof(unsigned));
       f->esp += sizeof(unsigned);
 
       //Move esp back to first position
@@ -184,19 +312,34 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->esp -= sizeof(int);
       f->esp -= sizeof(void **);
 
-
+      off_t readBytes = -1;
       if(readFileId == 0) {
         //Read from stdin
         for(int bufferPosition = 0;
-            readSize - (bufferPosition * sizeof(uint8_t)) > 0;
+            requestedReadSize - (bufferPosition * sizeof(uint8_t)) > 0;
             bufferPosition++) {
           uint8_t byte = input_getc();
           *(bufferRead + bufferPosition) = byte;
         }
+        readBytes = requestedReadSize;
       } else {
-        //Read from a file
-
+        lock_acquire(&fileIOLock);
+        for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
+             e = list_next (e)) {
+          struct fileItem *item = list_entry (e, struct fileItem, elem);
+          if(item->fd == readFileId) {
+            if(item->pidOwner != thread_current()->tid) {
+              //Doesn't own the file
+            } else {
+              readBytes = file_read_at(item->fsFile, bufferRead, requestedReadSize, item->position);
+              item->position += readBytes;
+            }
+            break;
+          }
+        }
+        lock_release(&fileIOLock);
       }
+      memcpy(&(f->eax), &readBytes, sizeof(off_t));
       break;
 
 
@@ -228,6 +371,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->esp -= sizeof(void**);
 
 
+      off_t bytesWritten = -1;
       //Now perform operations with necessary values.
       if(writeFileId == 1) {
         //We need to write to the console.
@@ -235,10 +379,23 @@ syscall_handler (struct intr_frame *f UNUSED)
         //Return the entire buffer size
         memcpy(&(f->eax), &sizeToWrite, sizeof(unsigned));
       } else {
-        printf("Writing to %d", writeFileId);
-        //Find the file..
-        //TODO
+        lock_acquire(&fileIOLock);
+        for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
+             e = list_next (e)) {
+          struct fileItem *item = list_entry (e, struct fileItem, elem);
+          if(item->fd == writeFileId) {
+            if(item->pidOwner != thread_current()->tid) {
+              //Doesn't own the file
+            } else {
+              bytesWritten = file_write_at(item->fsFile, writeBuffer, sizeToWrite, item->position);
+              item->position += bytesWritten;
+            }
+            break;
+          }
+        }
+        lock_release(&fileIOLock);
       }
+      memcpy(&(f->eax), &bytesWritten, sizeof(off_t));
       break;
 
 
@@ -247,10 +404,34 @@ syscall_handler (struct intr_frame *f UNUSED)
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
 
+      int fdSeek;
+      memcpy(&fdSeek, f->esp, sizeof(int));
+      f->esp += sizeof(int);
+
+      unsigned fdPosition;
+      memcpy(&fdPosition, f->esp, sizeof(unsigned));
+      f->esp += sizeof(unsigned);
+
       //Move esp back to first position
+      f->esp -= sizeof(unsigned);
+      f->esp -= sizeof(int);
       f->esp -= sizeof(void **);
 
 
+      lock_acquire(&fileIOLock);
+      for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
+           e = list_next (e)) {
+        struct fileItem *item = list_entry (e, struct fileItem, elem);
+        if(item->fd == fdSeek) {
+          if(item->pidOwner != thread_current()->tid) {
+            //Doesn't own the file
+          } else {
+            item->position = fdPosition;
+          }
+          break;
+        }
+      }
+      lock_release(&fileIOLock);
       break;
 
 
@@ -259,10 +440,31 @@ syscall_handler (struct intr_frame *f UNUSED)
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
 
+      int fdTell;
+      memcpy(&fdTell, f->esp, sizeof(int));
+      f->esp += sizeof(int);
+
       //Move esp back to first position
+      f->esp -= sizeof(int);
       f->esp -= sizeof(void **);
 
 
+      unsigned tellValue = 0;
+      lock_acquire(&fileIOLock);
+      for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
+           e = list_next (e)) {
+        struct fileItem *item = list_entry (e, struct fileItem, elem);
+        if(item->fd == fdTell) {
+          if(item->pidOwner != thread_current()->tid) {
+            //Doesn't own the file - TODO
+          } else {
+            tellValue = item->position;
+          }
+          break;
+        }
+      }
+      lock_release(&fileIOLock);
+      memcpy(&(f->eax), &tellValue, sizeof(unsigned));
       break;
 
 
@@ -271,10 +473,29 @@ syscall_handler (struct intr_frame *f UNUSED)
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
 
+      int fdClose;
+      memcpy(&fdClose, f->esp, sizeof(int));
+      f->esp += sizeof(int);
+
       //Move esp back to first position
+      f->esp -= sizeof(int);
       f->esp -= sizeof(void **);
 
 
+      lock_acquire(&fileIOLock);
+      for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
+           e = list_next (e)) {
+        struct fileItem *item = list_entry (e, struct fileItem, elem);
+        if(item->fd == fdClose) {
+          if(item->pidOwner != thread_current()->tid) {
+            //Doesn't own the file - TODO
+          } else {
+            closeFile(item);
+          }
+          break;
+        }
+      }
+      lock_release(&fileIOLock);
       break;
 
 

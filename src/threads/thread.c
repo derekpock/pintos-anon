@@ -9,8 +9,8 @@
 #include "threads/intr-stubs.h"
 #include "threads/palloc.h"
 #include "threads/switch.h"
-#include "threads/synch.h"
 #include "threads/vaddr.h"
+#include <threads/malloc.h>
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -19,6 +19,29 @@
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
 #define THREAD_MAGIC 0xcd6abf4b
+
+struct intMap* createIntMap(void) {
+  struct intMap* newNode;
+  newNode = malloc(sizeof(struct intMap));
+  if(newNode == 0) {
+    PANIC("Unable to get memory for newNode!");
+  }
+  newNode->key = -1;
+  newNode->value = -1;
+  return newNode;
+}
+
+struct semaMap* createSemaMap(unsigned initValue) {
+  struct semaMap* newNode;
+  newNode = malloc(sizeof(struct semaMap));
+  if(newNode == 0) {
+    PANIC("Unable to get memory for newNode!");
+  }
+  newNode->key = -1;
+  sema_init(&newNode->sema, initValue);
+  return newNode;
+}
+
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
@@ -92,6 +115,8 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  list_init (&semaWait_list);
+  list_init (&threadExit_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -182,6 +207,15 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
+
+  struct intMap* map = createIntMap();
+  map->key = tid;
+  map->value = -1;
+  list_push_back(&threadExit_list, &map->elem);
+
+  struct semaMap* smap = createSemaMap(0);
+  smap->key = tid;
+  list_push_back(&semaWait_list, &smap->elem);
 
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
@@ -291,6 +325,17 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
+
+  struct list_elem *e;
+  //Raise our sema so anybody who is waiting can now utilize our resources. Our exit status is already set.
+  for (e = list_begin (&semaWait_list); e != list_end (&semaWait_list);
+       e = list_next (e)) {
+    struct semaMap *map = list_entry (e, struct semaMap, elem);
+    if(map->key == thread_current()->tid) {
+      sema_up(&map->sema);
+    }
+  }
+
   thread_current ()->status = THREAD_DYING;
   schedule ();
   NOT_REACHED ();
@@ -462,9 +507,8 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
-  t->exitCode = -1;
   t->magic = THREAD_MAGIC;
-  sema_init(&t->semaWait, 0);
+  t->executedFile = NULL;
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
