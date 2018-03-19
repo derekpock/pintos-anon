@@ -10,6 +10,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "process.h"
+#include "pagedir.h"
 #include <threads/malloc.h>
 #include <threads/vaddr.h>
 
@@ -26,8 +27,12 @@ static void syscall_handler (struct intr_frame *);
 static struct fileItem* createNewFileItem(int fd, int pid, const char* name, struct file* fsFile);
 static struct list openFilesList;
 static int nextFd;
-static bool verifyPointer(void* pointer) {
-  return pointer < PHYS_BASE && pointer != NULL;
+static bool verifyPointer(void *pointer) {
+  if(!(pointer < PHYS_BASE && pointer != NULL)
+    || pagedir_get_page(thread_current()->pagedir, pointer) == NULL) {
+    closeFilesFromPid(thread_current()->tid);
+    thread_exit();
+  }
 }
 
 void
@@ -81,8 +86,9 @@ static void closeFile(struct fileItem* fileClose) {
 
 void closeFilesFromPid(int pid) {
   lock_acquire(&fileIOLock);
-  bool foundFiles = false;
+  bool foundFiles;
   do {
+    foundFiles = false;
     struct list_elem* e;
     for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
          e = list_next (e)) {
@@ -102,6 +108,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 {
   int call;
   struct list_elem *e;
+  verifyPointer(f->esp);
   memcpy(&call, f->esp, sizeof(int));
   switch (call) {
     case SYS_HALT:  //no args
@@ -112,6 +119,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_EXIT:  //int intArg1
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       int exitValue;
       memcpy(&exitValue, f->esp, sizeof(int));  //copy value at esp into exitValue
@@ -140,14 +148,12 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_EXEC:  //const char *file - return pid_t
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       char* file;
       memcpy(&file, f->esp, sizeof(char*));
+      verifyPointer(file);
       f->esp += sizeof(char*);
-      if(!verifyPointer(file)) {
-        closeFilesFromPid(thread_current()->tid);
-        thread_exit();
-      }
 
       //Move esp back down to the original value.
       f->esp -= sizeof(char*);
@@ -164,6 +170,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_WAIT:  //pid_t pid - return int
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       pid_t waitOnPid;
       memcpy(&waitOnPid, f->esp, sizeof(pid_t));
@@ -183,14 +190,13 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_CREATE:    //const char *file, unsigned initial_size - return bool
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       char* newFile;
       memcpy(&newFile, f->esp, sizeof(char*));
+      verifyPointer(newFile);
       f->esp += sizeof(char*);
-      if(!verifyPointer(newFile)) {
-        closeFilesFromPid(thread_current()->tid);
-        thread_exit();
-      }
+      verifyPointer(f->esp);
 
       unsigned initialSize;
       memcpy(&initialSize, f->esp, sizeof(unsigned));
@@ -202,6 +208,11 @@ syscall_handler (struct intr_frame *f UNUSED)
       f->esp -= sizeof(void **);
 
 
+      //Max character limit
+      if(strlen(newFile) > 14) {
+        closeFilesFromPid(thread_current()->tid);
+        thread_exit();
+      }
       lock_acquire(&fileIOLock);
       bool isFileCreated = filesys_create(newFile, initialSize);
       lock_release(&fileIOLock);
@@ -214,15 +225,13 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_REMOVE:    //const char *file - return bool
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       //TODO what if removing an open file?
       char* removingFile;
       memcpy(&removingFile, f->esp, sizeof(char*));
+      verifyPointer(removingFile);
       f->esp += sizeof(char*);
-      if(!verifyPointer(removingFile)) {
-        closeFilesFromPid(thread_current()->tid);
-        thread_exit();
-      }
 
       //Move esp back to first position
       f->esp -= sizeof(char *);
@@ -240,14 +249,12 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_OPEN:      //const char *file - return int
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       char* openingFile;
       memcpy(&openingFile, f->esp, sizeof(char*));
+      verifyPointer(openingFile);
       f->esp += sizeof(char*);
-      if(!verifyPointer(openingFile)) {
-        closeFilesFromPid(thread_current()->tid);
-        thread_exit();
-      }
 
       //Move esp back to first position
       f->esp -= sizeof(char*);
@@ -286,6 +293,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_FILESIZE:  //int fd - return int
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       int fileSizeCheckFd;
       memcpy(&fileSizeCheckFd, f->esp, sizeof(int));
@@ -319,18 +327,18 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_READ:      //int fd, void *buffer, unsigned size- return int
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       int readFileId;
       memcpy(&readFileId, f->esp, sizeof(int));
       f->esp += sizeof(int);
+      verifyPointer(f->esp);
 
       char *bufferRead;
       memcpy(&bufferRead, f->esp, sizeof(void*));
+      verifyPointer(bufferRead);
       f->esp += sizeof(void*);
-      if(!verifyPointer(bufferRead)) {
-        closeFilesFromPid(thread_current()->tid);
-        thread_exit();
-      }
+      verifyPointer(f->esp);
 
       unsigned requestedReadSize;
       memcpy(&requestedReadSize, f->esp, sizeof(unsigned));
@@ -377,21 +385,21 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_WRITE:     //int fd, const void *buffer, unsigned size - return int
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       //Get argument from the stack (normal getting, this is the first).
       //Getting integer
       int writeFileId;
       memcpy(&writeFileId, f->esp, sizeof(int));
+      verifyPointer(f->esp);
       f->esp += sizeof(int);
 
       //Get void pointer
       void* writeBuffer;
       memcpy(&writeBuffer, f->esp, sizeof(void *));
+      verifyPointer(writeBuffer);
       f->esp += sizeof(void *);
-      if(!verifyPointer(writeBuffer)) {
-        closeFilesFromPid(thread_current()->tid);
-        thread_exit();
-      }
+      verifyPointer(f->esp);
 
       //Getting unsigned value
       unsigned sizeToWrite;
@@ -437,10 +445,12 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_SEEK:      //int fd, unsigned position
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       int fdSeek;
       memcpy(&fdSeek, f->esp, sizeof(int));
       f->esp += sizeof(int);
+      verifyPointer(f->esp);
 
       unsigned fdPosition;
       memcpy(&fdPosition, f->esp, sizeof(unsigned));
@@ -473,6 +483,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_TELL:      //int fd - return unsigned
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       int fdTell;
       memcpy(&fdTell, f->esp, sizeof(int));
@@ -506,6 +517,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_CLOSE:     //int fd
       //Move pointer back before the return value, to the first argument on the stack.
       f->esp += sizeof(void **);
+      verifyPointer(f->esp);
 
       int fdClose;
       memcpy(&fdClose, f->esp, sizeof(int));
@@ -535,8 +547,8 @@ syscall_handler (struct intr_frame *f UNUSED)
 
 
     default:
-	    printf("Faulting code: %d\n", call);
-      PANIC("Oh noes! This hasn't been implemented yet!");
+      closeFilesFromPid(thread_current()->tid);
+      thread_exit();
   }
 //  printf ("system call!\n");
 //  thread_exit ();
