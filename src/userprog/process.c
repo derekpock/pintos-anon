@@ -222,7 +222,7 @@ process_wait (tid_t child_tid)
         }
       }
 
-      list_remove(&nowWatching->elem);
+//      list_remove(&nowWatching->elem);
       if(waited) {
         //We now know that the process has exited - get it's exit code.
         for (e = list_begin (&threadExit_list); e != list_end (&threadExit_list);

@@ -209,13 +209,12 @@ syscall_handler (struct intr_frame *f UNUSED)
 
 
       //Max character limit
-      if(strlen(newFile) > 14) {
-        closeFilesFromPid(thread_current()->tid);
-        thread_exit();
+      bool isFileCreated = false;
+      if(strlen(newFile) <= 14) {
+        lock_acquire(&fileIOLock);
+        isFileCreated = filesys_create(newFile, initialSize);
+        lock_release(&fileIOLock);
       }
-      lock_acquire(&fileIOLock);
-      bool isFileCreated = filesys_create(newFile, initialSize);
-      lock_release(&fileIOLock);
 
       memcpy(&(f->eax), &isFileCreated, sizeof(bool));
       break;
