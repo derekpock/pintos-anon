@@ -11,6 +11,7 @@
 #include "threads/thread.h"
 #include "process.h"
 #include <threads/malloc.h>
+#include <threads/vaddr.h>
 
 struct fileItem {
   int fd;
@@ -25,6 +26,9 @@ static void syscall_handler (struct intr_frame *);
 static struct fileItem* createNewFileItem(int fd, int pid, const char* name, struct file* fsFile);
 static struct list openFilesList;
 static int nextFd;
+static bool verifyPointer(void* pointer) {
+  return pointer < PHYS_BASE && pointer != NULL;
+}
 
 void
 syscall_init (void)
@@ -52,6 +56,7 @@ struct fileItem* createNewFileItem(int fd, int pid, const char* name, struct fil
   return item;
 }
 
+
 // MUST have file IO lock before calling this
 //TODO call this for all force closed processes
 static void closeFile(struct fileItem* fileClose) {
@@ -76,14 +81,19 @@ static void closeFile(struct fileItem* fileClose) {
 
 void closeFilesFromPid(int pid) {
   lock_acquire(&fileIOLock);
-  struct list_elem* e;
-  for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
-       e = list_next (e)) {
-    struct fileItem *item = list_entry (e, struct fileItem, elem);
-    if(item->pidOwner == pid) {
-      closeFile(item);
+  bool foundFiles = false;
+  do {
+    struct list_elem* e;
+    for (e = list_begin (&openFilesList); e != list_end (&openFilesList);
+         e = list_next (e)) {
+      struct fileItem *item = list_entry (e, struct fileItem, elem);
+      if(item->pidOwner == pid) {
+        closeFile(item);
+        foundFiles = true;
+        break;
+      }
     }
-  }
+  } while(foundFiles);
   lock_release(&fileIOLock);
 }
 
@@ -134,6 +144,10 @@ syscall_handler (struct intr_frame *f UNUSED)
       char* file;
       memcpy(&file, f->esp, sizeof(char*));
       f->esp += sizeof(char*);
+      if(!verifyPointer(file)) {
+        closeFilesFromPid(thread_current()->tid);
+        thread_exit();
+      }
 
       //Move esp back down to the original value.
       f->esp -= sizeof(char*);
@@ -173,6 +187,10 @@ syscall_handler (struct intr_frame *f UNUSED)
       char* newFile;
       memcpy(&newFile, f->esp, sizeof(char*));
       f->esp += sizeof(char*);
+      if(!verifyPointer(newFile)) {
+        closeFilesFromPid(thread_current()->tid);
+        thread_exit();
+      }
 
       unsigned initialSize;
       memcpy(&initialSize, f->esp, sizeof(unsigned));
@@ -201,6 +219,10 @@ syscall_handler (struct intr_frame *f UNUSED)
       char* removingFile;
       memcpy(&removingFile, f->esp, sizeof(char*));
       f->esp += sizeof(char*);
+      if(!verifyPointer(removingFile)) {
+        closeFilesFromPid(thread_current()->tid);
+        thread_exit();
+      }
 
       //Move esp back to first position
       f->esp -= sizeof(char *);
@@ -222,6 +244,10 @@ syscall_handler (struct intr_frame *f UNUSED)
       char* openingFile;
       memcpy(&openingFile, f->esp, sizeof(char*));
       f->esp += sizeof(char*);
+      if(!verifyPointer(openingFile)) {
+        closeFilesFromPid(thread_current()->tid);
+        thread_exit();
+      }
 
       //Move esp back to first position
       f->esp -= sizeof(char*);
@@ -301,6 +327,10 @@ syscall_handler (struct intr_frame *f UNUSED)
       char *bufferRead;
       memcpy(&bufferRead, f->esp, sizeof(void*));
       f->esp += sizeof(void*);
+      if(!verifyPointer(bufferRead)) {
+        closeFilesFromPid(thread_current()->tid);
+        thread_exit();
+      }
 
       unsigned requestedReadSize;
       memcpy(&requestedReadSize, f->esp, sizeof(unsigned));
@@ -358,6 +388,10 @@ syscall_handler (struct intr_frame *f UNUSED)
       void* writeBuffer;
       memcpy(&writeBuffer, f->esp, sizeof(void *));
       f->esp += sizeof(void *);
+      if(!verifyPointer(writeBuffer)) {
+        closeFilesFromPid(thread_current()->tid);
+        thread_exit();
+      }
 
       //Getting unsigned value
       unsigned sizeToWrite;
