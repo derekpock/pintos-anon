@@ -880,9 +880,6 @@
 		<Unit filename="/pintos/pintos-anon/src/tests/threads/Rubric.priority">
 			<Option target="pintos_anon"/>
 		</Unit>
-		<Unit filename="/pintos/pintos-anon/src/tests/threads/alarm-mega.ck">
-			<Option target="pintos_anon"/>
-		</Unit>
 		<Unit filename="/pintos/pintos-anon/src/tests/threads/alarm-multiple.ck">
 			<Option target="pintos_anon"/>
 		</Unit>
@@ -1742,12 +1739,6 @@
 			<Option target="pintos_anon"/>
 		</Unit>
 		<Unit filename="/pintos/pintos-anon/src/threads/Makefile">
-			<Option target="pintos_anon"/>
-		</Unit>
-		<Unit filename="/pintos/pintos-anon/src/threads/bochsout.txt">
-			<Option target="pintos_anon"/>
-		</Unit>
-		<Unit filename="/pintos/pintos-anon/src/threads/bochsrc.txt">
 			<Option target="pintos_anon"/>
 		</Unit>
 		<Unit filename="/pintos/pintos-anon/src/threads/flags.h">

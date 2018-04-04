@@ -1,4 +1,4 @@
-/opt/clion/bin/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /pintos/pintos-anon
+/opt/clion-2018.1/bin/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /pintos/pintos-anon
 -- Configuring done
 -- Generating done
 -- Build files have been written to: /pintos/pintos-anon/cmake-build-debug

@@ -252,7 +252,6 @@ add_executable(pintos_anon
         src/tests/internal/list.c
         src/tests/internal/stdio.c
         src/tests/internal/stdlib.c
-        src/tests/threads/alarm-mega.ck
         src/tests/threads/alarm-multiple.ck
         src/tests/threads/alarm-negative.c
         src/tests/threads/alarm-negative.ck
@@ -558,8 +557,6 @@ add_executable(pintos_anon
         src/tests/Make.tests
         src/tests/random.pm
         src/tests/tests.pm
-        src/threads/bochsout.txt
-        src/threads/bochsrc.txt
         src/threads/flags.h
         src/threads/init.c
         src/threads/init.h
