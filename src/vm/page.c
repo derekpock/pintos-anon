@@ -160,7 +160,7 @@ page_out (struct page *p)
       //file out
       file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
     } else{
-      swap(p);
+      swap_out(p);
     }
   } else {
     ok = true;
