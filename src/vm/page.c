@@ -145,6 +145,7 @@ page_out (struct page *p)
      dirty bit, to prevent a race with the process dirtying the
      page. */
 
+
 /* add code here */
 
   /* Has the frame been modified? */
