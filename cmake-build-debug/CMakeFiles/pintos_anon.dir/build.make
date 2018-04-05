@@ -6081,6 +6081,78 @@ CMakeFiles/pintos_anon.dir/src/utils/squish-unix.c.o.provides: CMakeFiles/pintos
 CMakeFiles/pintos_anon.dir/src/utils/squish-unix.c.o.provides.build: CMakeFiles/pintos_anon.dir/src/utils/squish-unix.c.o
 
 
+CMakeFiles/pintos_anon.dir/src/vm/frame.c.o: CMakeFiles/pintos_anon.dir/flags.make
+CMakeFiles/pintos_anon.dir/src/vm/frame.c.o: ../src/vm/frame.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/pintos/pintos-anon/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_252) "Building C object CMakeFiles/pintos_anon.dir/src/vm/frame.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/pintos_anon.dir/src/vm/frame.c.o   -c /pintos/pintos-anon/src/vm/frame.c
+
+CMakeFiles/pintos_anon.dir/src/vm/frame.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/pintos_anon.dir/src/vm/frame.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /pintos/pintos-anon/src/vm/frame.c > CMakeFiles/pintos_anon.dir/src/vm/frame.c.i
+
+CMakeFiles/pintos_anon.dir/src/vm/frame.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/pintos_anon.dir/src/vm/frame.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /pintos/pintos-anon/src/vm/frame.c -o CMakeFiles/pintos_anon.dir/src/vm/frame.c.s
+
+CMakeFiles/pintos_anon.dir/src/vm/frame.c.o.requires:
+
+.PHONY : CMakeFiles/pintos_anon.dir/src/vm/frame.c.o.requires
+
+CMakeFiles/pintos_anon.dir/src/vm/frame.c.o.provides: CMakeFiles/pintos_anon.dir/src/vm/frame.c.o.requires
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/frame.c.o.provides.build
+.PHONY : CMakeFiles/pintos_anon.dir/src/vm/frame.c.o.provides
+
+CMakeFiles/pintos_anon.dir/src/vm/frame.c.o.provides.build: CMakeFiles/pintos_anon.dir/src/vm/frame.c.o
+
+
+CMakeFiles/pintos_anon.dir/src/vm/page.c.o: CMakeFiles/pintos_anon.dir/flags.make
+CMakeFiles/pintos_anon.dir/src/vm/page.c.o: ../src/vm/page.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/pintos/pintos-anon/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_253) "Building C object CMakeFiles/pintos_anon.dir/src/vm/page.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/pintos_anon.dir/src/vm/page.c.o   -c /pintos/pintos-anon/src/vm/page.c
+
+CMakeFiles/pintos_anon.dir/src/vm/page.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/pintos_anon.dir/src/vm/page.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /pintos/pintos-anon/src/vm/page.c > CMakeFiles/pintos_anon.dir/src/vm/page.c.i
+
+CMakeFiles/pintos_anon.dir/src/vm/page.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/pintos_anon.dir/src/vm/page.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /pintos/pintos-anon/src/vm/page.c -o CMakeFiles/pintos_anon.dir/src/vm/page.c.s
+
+CMakeFiles/pintos_anon.dir/src/vm/page.c.o.requires:
+
+.PHONY : CMakeFiles/pintos_anon.dir/src/vm/page.c.o.requires
+
+CMakeFiles/pintos_anon.dir/src/vm/page.c.o.provides: CMakeFiles/pintos_anon.dir/src/vm/page.c.o.requires
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/page.c.o.provides.build
+.PHONY : CMakeFiles/pintos_anon.dir/src/vm/page.c.o.provides
+
+CMakeFiles/pintos_anon.dir/src/vm/page.c.o.provides.build: CMakeFiles/pintos_anon.dir/src/vm/page.c.o
+
+
+CMakeFiles/pintos_anon.dir/src/vm/swap.c.o: CMakeFiles/pintos_anon.dir/flags.make
+CMakeFiles/pintos_anon.dir/src/vm/swap.c.o: ../src/vm/swap.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/pintos/pintos-anon/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_254) "Building C object CMakeFiles/pintos_anon.dir/src/vm/swap.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles/pintos_anon.dir/src/vm/swap.c.o   -c /pintos/pintos-anon/src/vm/swap.c
+
+CMakeFiles/pintos_anon.dir/src/vm/swap.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/pintos_anon.dir/src/vm/swap.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /pintos/pintos-anon/src/vm/swap.c > CMakeFiles/pintos_anon.dir/src/vm/swap.c.i
+
+CMakeFiles/pintos_anon.dir/src/vm/swap.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/pintos_anon.dir/src/vm/swap.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /pintos/pintos-anon/src/vm/swap.c -o CMakeFiles/pintos_anon.dir/src/vm/swap.c.s
+
+CMakeFiles/pintos_anon.dir/src/vm/swap.c.o.requires:
+
+.PHONY : CMakeFiles/pintos_anon.dir/src/vm/swap.c.o.requires
+
+CMakeFiles/pintos_anon.dir/src/vm/swap.c.o.provides: CMakeFiles/pintos_anon.dir/src/vm/swap.c.o.requires
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/swap.c.o.provides.build
+.PHONY : CMakeFiles/pintos_anon.dir/src/vm/swap.c.o.provides
+
+CMakeFiles/pintos_anon.dir/src/vm/swap.c.o.provides.build: CMakeFiles/pintos_anon.dir/src/vm/swap.c.o
+
+
 # Object files for target pintos_anon
 pintos_anon_OBJECTS = \
 "CMakeFiles/pintos_anon.dir/src/devices/block.c.o" \
@@ -6333,7 +6405,10 @@ pintos_anon_OBJECTS = \
 "CMakeFiles/pintos_anon.dir/src/userprog/tss.c.o" \
 "CMakeFiles/pintos_anon.dir/src/utils/setitimer-helper.c.o" \
 "CMakeFiles/pintos_anon.dir/src/utils/squish-pty.c.o" \
-"CMakeFiles/pintos_anon.dir/src/utils/squish-unix.c.o"
+"CMakeFiles/pintos_anon.dir/src/utils/squish-unix.c.o" \
+"CMakeFiles/pintos_anon.dir/src/vm/frame.c.o" \
+"CMakeFiles/pintos_anon.dir/src/vm/page.c.o" \
+"CMakeFiles/pintos_anon.dir/src/vm/swap.c.o"
 
 # External object files for target pintos_anon
 pintos_anon_EXTERNAL_OBJECTS = \
@@ -6592,12 +6667,15 @@ pintos_anon: CMakeFiles/pintos_anon.dir/src/userprog/tss.c.o
 pintos_anon: CMakeFiles/pintos_anon.dir/src/utils/setitimer-helper.c.o
 pintos_anon: CMakeFiles/pintos_anon.dir/src/utils/squish-pty.c.o
 pintos_anon: CMakeFiles/pintos_anon.dir/src/utils/squish-unix.c.o
+pintos_anon: CMakeFiles/pintos_anon.dir/src/vm/frame.c.o
+pintos_anon: CMakeFiles/pintos_anon.dir/src/vm/page.c.o
+pintos_anon: CMakeFiles/pintos_anon.dir/src/vm/swap.c.o
 pintos_anon: ../src/utils/setitimer-helper.o
 pintos_anon: ../src/utils/squish-pty.o
 pintos_anon: ../src/utils/squish-unix.o
 pintos_anon: CMakeFiles/pintos_anon.dir/build.make
 pintos_anon: CMakeFiles/pintos_anon.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/pintos/pintos-anon/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_252) "Linking C executable pintos_anon"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/pintos/pintos-anon/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_255) "Linking C executable pintos_anon"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/pintos_anon.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -6856,6 +6934,9 @@ CMakeFiles/pintos_anon.dir/requires: CMakeFiles/pintos_anon.dir/src/userprog/tss
 CMakeFiles/pintos_anon.dir/requires: CMakeFiles/pintos_anon.dir/src/utils/setitimer-helper.c.o.requires
 CMakeFiles/pintos_anon.dir/requires: CMakeFiles/pintos_anon.dir/src/utils/squish-pty.c.o.requires
 CMakeFiles/pintos_anon.dir/requires: CMakeFiles/pintos_anon.dir/src/utils/squish-unix.c.o.requires
+CMakeFiles/pintos_anon.dir/requires: CMakeFiles/pintos_anon.dir/src/vm/frame.c.o.requires
+CMakeFiles/pintos_anon.dir/requires: CMakeFiles/pintos_anon.dir/src/vm/page.c.o.requires
+CMakeFiles/pintos_anon.dir/requires: CMakeFiles/pintos_anon.dir/src/vm/swap.c.o.requires
 
 .PHONY : CMakeFiles/pintos_anon.dir/requires
 

@@ -6900,6 +6900,87 @@ src/utils/squish-unix.c.s:
 	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/utils/squish-unix.c.s
 .PHONY : src/utils/squish-unix.c.s
 
+src/vm/frame.o: src/vm/frame.c.o
+
+.PHONY : src/vm/frame.o
+
+# target to build an object file
+src/vm/frame.c.o:
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/frame.c.o
+.PHONY : src/vm/frame.c.o
+
+src/vm/frame.i: src/vm/frame.c.i
+
+.PHONY : src/vm/frame.i
+
+# target to preprocess a source file
+src/vm/frame.c.i:
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/frame.c.i
+.PHONY : src/vm/frame.c.i
+
+src/vm/frame.s: src/vm/frame.c.s
+
+.PHONY : src/vm/frame.s
+
+# target to generate assembly for a file
+src/vm/frame.c.s:
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/frame.c.s
+.PHONY : src/vm/frame.c.s
+
+src/vm/page.o: src/vm/page.c.o
+
+.PHONY : src/vm/page.o
+
+# target to build an object file
+src/vm/page.c.o:
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/page.c.o
+.PHONY : src/vm/page.c.o
+
+src/vm/page.i: src/vm/page.c.i
+
+.PHONY : src/vm/page.i
+
+# target to preprocess a source file
+src/vm/page.c.i:
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/page.c.i
+.PHONY : src/vm/page.c.i
+
+src/vm/page.s: src/vm/page.c.s
+
+.PHONY : src/vm/page.s
+
+# target to generate assembly for a file
+src/vm/page.c.s:
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/page.c.s
+.PHONY : src/vm/page.c.s
+
+src/vm/swap.o: src/vm/swap.c.o
+
+.PHONY : src/vm/swap.o
+
+# target to build an object file
+src/vm/swap.c.o:
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/swap.c.o
+.PHONY : src/vm/swap.c.o
+
+src/vm/swap.i: src/vm/swap.c.i
+
+.PHONY : src/vm/swap.i
+
+# target to preprocess a source file
+src/vm/swap.c.i:
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/swap.c.i
+.PHONY : src/vm/swap.c.i
+
+src/vm/swap.s: src/vm/swap.c.s
+
+.PHONY : src/vm/swap.s
+
+# target to generate assembly for a file
+src/vm/swap.c.s:
+	$(MAKE) -f CMakeFiles/pintos_anon.dir/build.make CMakeFiles/pintos_anon.dir/src/vm/swap.c.s
+.PHONY : src/vm/swap.c.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -7662,6 +7743,15 @@ help:
 	@echo "... src/utils/squish-unix.o"
 	@echo "... src/utils/squish-unix.i"
 	@echo "... src/utils/squish-unix.s"
+	@echo "... src/vm/frame.o"
+	@echo "... src/vm/frame.i"
+	@echo "... src/vm/frame.s"
+	@echo "... src/vm/page.o"
+	@echo "... src/vm/page.i"
+	@echo "... src/vm/page.s"
+	@echo "... src/vm/swap.o"
+	@echo "... src/vm/swap.i"
+	@echo "... src/vm/swap.s"
 .PHONY : help
 
 

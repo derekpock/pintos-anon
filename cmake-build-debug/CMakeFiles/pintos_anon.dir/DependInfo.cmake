@@ -255,6 +255,9 @@ set(CMAKE_DEPENDS_CHECK_C
   "/pintos/pintos-anon/src/utils/setitimer-helper.c" "/pintos/pintos-anon/cmake-build-debug/CMakeFiles/pintos_anon.dir/src/utils/setitimer-helper.c.o"
   "/pintos/pintos-anon/src/utils/squish-pty.c" "/pintos/pintos-anon/cmake-build-debug/CMakeFiles/pintos_anon.dir/src/utils/squish-pty.c.o"
   "/pintos/pintos-anon/src/utils/squish-unix.c" "/pintos/pintos-anon/cmake-build-debug/CMakeFiles/pintos_anon.dir/src/utils/squish-unix.c.o"
+  "/pintos/pintos-anon/src/vm/frame.c" "/pintos/pintos-anon/cmake-build-debug/CMakeFiles/pintos_anon.dir/src/vm/frame.c.o"
+  "/pintos/pintos-anon/src/vm/page.c" "/pintos/pintos-anon/cmake-build-debug/CMakeFiles/pintos_anon.dir/src/vm/page.c.o"
+  "/pintos/pintos-anon/src/vm/swap.c" "/pintos/pintos-anon/cmake-build-debug/CMakeFiles/pintos_anon.dir/src/vm/swap.c.o"
   )
 set(CMAKE_C_COMPILER_ID "GNU")
 

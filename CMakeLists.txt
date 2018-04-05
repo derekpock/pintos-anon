@@ -614,4 +614,10 @@ add_executable(pintos_anon
         src/utils/squish-unix.c
         src/utils/squish-unix.o
         src/vm/Make.vars
-        src/vm/Makefile)
+        src/vm/Makefile
+        src/vm/frame.c
+        src/vm/frame.h
+        src/vm/page.c
+        src/vm/page.h
+        src/vm/swap.c
+        src/vm/swap.h)

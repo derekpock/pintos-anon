@@ -1909,6 +1909,24 @@
 		<Unit filename="/pintos/pintos-anon/src/vm/Makefile">
 			<Option target="pintos_anon"/>
 		</Unit>
+		<Unit filename="/pintos/pintos-anon/src/vm/frame.c">
+			<Option target="pintos_anon"/>
+		</Unit>
+		<Unit filename="/pintos/pintos-anon/src/vm/frame.h">
+			<Option target="pintos_anon"/>
+		</Unit>
+		<Unit filename="/pintos/pintos-anon/src/vm/page.c">
+			<Option target="pintos_anon"/>
+		</Unit>
+		<Unit filename="/pintos/pintos-anon/src/vm/page.h">
+			<Option target="pintos_anon"/>
+		</Unit>
+		<Unit filename="/pintos/pintos-anon/src/vm/swap.c">
+			<Option target="pintos_anon"/>
+		</Unit>
+		<Unit filename="/pintos/pintos-anon/src/vm/swap.h">
+			<Option target="pintos_anon"/>
+		</Unit>
 		<Unit filename="/pintos/pintos-anon/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
 		</Unit>
