@@ -14,8 +14,6 @@ static size_t frame_cnt;
 static struct lock scan_lock;
 static size_t hand;
 
-static struct list frame_table;
-
 /* Initialize the frame manager. */
 void
 frame_init (void) 
