@@ -21,7 +21,6 @@ frame_init (void)
   void *base;
 
   lock_init (&scan_lock);
-  list_init(&frame_table);
 
   frames = malloc (sizeof *frames * init_ram_pages);
   if (frames == NULL)
