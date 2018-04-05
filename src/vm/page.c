@@ -158,9 +158,10 @@ page_out (struct page *p)
   if(dirty) {
     if(p->file != NULL){
       //file out
-      file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
+      off_t bytes_written = file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
+      ok = (bytes_written == p->file_bytes);
     } else{
-      swap_out(p);
+      ok = swap_out(p);
     }
   } else {
     ok = true;
