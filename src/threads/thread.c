@@ -482,6 +482,7 @@ init_thread (struct thread *t, const char *name, int priority, tid_t tid)
   list_init (&t->mappings);
   t->next_handle = 2;
   t->magic = THREAD_MAGIC;
+  t->attemptingToWrite = false;
   list_push_back (&all_list, &t->allelem);
 }
 

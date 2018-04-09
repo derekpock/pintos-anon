@@ -51,6 +51,24 @@ page_for_addr (const void *address)
         return hash_entry (e, struct page, hash_elem);
 
       /* No page.  Expand stack? */
+      //Need to check if the access is valid.
+      if(thread_current()->user_esp != NULL) {
+        unsigned long difference;
+        if(thread_current()->user_esp > address) {
+          difference = thread_current()->user_esp - address;
+        } else {
+          difference = address - thread_current()->user_esp;
+        }
+        if(difference < 32 || thread_current()->attemptingToWrite) {
+          struct page* newPage = page_allocate(address, false);
+          return newPage;
+        } else {
+//          printf("difference is huge: %lu\n", difference);
+          return NULL;
+        }
+      } else {
+        PANIC("No esp pointer! Cannot expand stack here!\n");
+      }
 //      struct page* newPage = page_allocate(address, p.read_only);
 //      return newPage;
 /* add code */
