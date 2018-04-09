@@ -51,8 +51,8 @@ page_for_addr (const void *address)
         return hash_entry (e, struct page, hash_elem);
 
       /* No page.  Expand stack? */
-      struct page* newPage = page_allocate(address, p.read_only);
-      return newPage;
+//      struct page* newPage = page_allocate(address, p.read_only);
+//      return newPage;
 /* add code */
 
     }
