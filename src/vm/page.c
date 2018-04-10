@@ -62,7 +62,7 @@ page_for_addr (const void *address)
         }*/
 //        printf("difference:%lu\n", difference);
         //Checks if address is within 32 bytes of the stack pointer
-        if(thread_current()->user_esp - 32 < address) {
+        if(thread_current()->user_esp - 32 < address && thread_current()->user_esp - PHYS_BASE < STACK_MAX) {
           return page_allocate(p.addr, false);
         }
 
