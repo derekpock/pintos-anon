@@ -52,26 +52,20 @@ page_for_addr (const void *address)
 
       /* No page.  Expand stack? */
       //Need to check if the access is valid.
-      if(thread_current()->user_esp != NULL) {
-        unsigned long difference;
+        /*unsigned long difference;
         if(thread_current()->user_esp > address) {
 //          printf("case 1\n");
           difference = thread_current()->user_esp - address;
         } else {
 //          printf("case 2\n");
           difference = address - thread_current()->user_esp;
-        }
+        }*/
 //        printf("difference:%lu\n", difference);
-        if(difference < 32 || thread_current()->attemptingToWrite) {
-          struct page* newPage = page_allocate(address, false);
-          return newPage;
-        } else {
-//          printf("difference is huge and not writing: %lu\n", difference);
-          return NULL;
+        //Checks if address is within 32 bytes of the stack pointer
+        if(thread_current()->user_esp - 32 < address) {
+          return page_allocate(p.addr, false);
         }
-      } else {
-        PANIC("No esp pointer! Cannot expand stack here!\n");
-      }
+
 /* add code */
 
     }
@@ -176,15 +170,19 @@ page_out (struct page *p)
 
   /* Write frame contents to disk if necessary. */
   if(dirty) {
-    if(p->file != NULL){
+    if(p->file != NULL && !p->private){
       //file out
-      off_t bytes_written = file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
-      ok = (bytes_written == p->file_bytes);
+      //off_t bytes_written =
+      ok = file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
+      //ok = (bytes_written == p->file_bytes);
     } else{
       ok = swap_out(p);
     }
   } else {
     ok = true;
+  }
+  if(ok){
+    p->frame = NULL;
   }
 
 /* add code here */
