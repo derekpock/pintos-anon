@@ -8,9 +8,8 @@
 
 >> Fill in the names of your group members.
 
-FirstName LastName
-FirstName LastName
-FirstName LastName
+Derek Pockrandt
+Benjamin Miller
 
 ---- PRELIMINARIES ----
 
@@ -29,10 +28,26 @@ FirstName LastName
 >> A1: In a few paragraphs, describe the existing code for locating the
 >> frame, if any, that contains the data of a given page.
 
+The page struct contains a lot of data about the page, including a reference to
+the frame. The frame struct also contains a reference to the page that it is mapped
+to if any as well as a reference to the base address of the kernel. Pages do not
+receive a frame reference when initialized.
+
+The frame_alloc_and_lock() function essentially tries to execute the try_frame_alloc_and_lock()
+function multiple times. The try_frame_alloc_and_lock() function searches through
+the frames to locate a free one. If it fails it then looks through the frames to
+pick one to evict. It picks the first one it finds that has been recently accessed.
+
 ---- SYNCHRONIZATION ----
 
 >> A2: When two user processes both need a new frame at the same time,
 >> how are races avoided?
+
+The try_frame_alloc_and_lock() function requires a scan lock in order to search
+for a frame. This means that there can be no other processes searching for one at
+the same time so there is no race to get a free frame. To prevent any process that
+fails to get a lock from giving up the frame_alloc_and_lock() function waits after
+failing and tries again two more times.
 
 		       PAGING TO AND FROM DISK
 		       =======================
@@ -61,6 +76,16 @@ FirstName LastName
 >> memory subsystem.  Explain how the page fault and eviction
 >> processes differ between swap pages and other pages.
 
+Memory mapped files are stored in a struct within the syscall.c file called mapping.
+This struct contains a reference to the file that is mapped, its mapping id, and
+the number of pages mapped. Various functions can be called on these mappings like
+lookup_mapping() or sys_munmap() to manipulate them as needed.
+
+Whenever pages were evicted in the case of a memory mapped file they would either
+be written to the disk(if it was dirty) or would be left alone because no changes
+needed to be written to the disk. Now other pages would be swapped out with the
+swap_out() function if they were dirty.
+
 >> C3: Explain how you determine whether a new file mapping overlaps
 >> any existing segment.
 
@@ -72,6 +97,12 @@ FirstName LastName
 >> that much of their implementation can be shared.  Explain why your
 >> implementation either does or does not share much of the code for
 >> the two situations.
+
+The differences between these types did allow us to treat most of the implementation
+as a single type. This is because the only time that an important difference arises
+is when the pages need to be written to the disk. This is handled by a simple check
+of what type it is and then the appropriate action can be taken. If it is a mmap then
+it can be written to the file and if it isn't it can be written to the swap.
 
 			   SURVEY QUESTIONS
 			   ================

@@ -172,9 +172,8 @@ page_out (struct page *p)
   if(dirty) {
     if(p->file != NULL && !p->private){
       //file out
-      //off_t bytes_written =
-      ok = file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
-      //ok = (bytes_written == p->file_bytes);
+      off_t bytes_written = file_write_at(p->file, p->frame->base, p->file_bytes, p->file_offset);
+      ok = (bytes_written == p->file_bytes);
     } else{
       ok = swap_out(p);
     }
