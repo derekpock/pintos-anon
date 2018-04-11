@@ -57,9 +57,55 @@ failing and tries again two more times.
 >> B1: When a frame is required but none is free, some frame must be
 >> evicted.  Describe the algorithm used to choose a frame to evict.
 
+We begin with a "hand" value, which represents a clock hand going around and looping.
+The hand value has a set value, on start, it is equal to zero, or pointing to the first frame.
+When we need to evict a frame, we call the frame_alloc_and_lock function with the page we
+need to frame. This function will call try_frame_alloc_and_lock three times, each separated
+by 1 second, in hopes of finding a frame. Once one is found, this will return the fresh frame
+with the page set up.
+
+Now try_frame_alloc_and_lock takes advantage of the hand value, only if necessary. We first try to
+find a frame that is not in use, by checking if we can aquire the lock for the frame. If we are
+able to get a free frame, then return it. Otherwise, we will utilize the frame hand value. Note
+that the hand is a global variable, and once a frame is returned, the hand keeps its value, or
+position, for the next time a frame is needed. We now go into a loop that is twice the number
+of frames. Each iteration of the loop, we will increment the hand. If the hand is beyond the
+number of frames, "loop" it back to 0 as a clock hand would going around a clock. The hand points
+to a frame to check and attempt to evict. If we still cannot lock any of the frames, we must give up.
+
+However, if we can get a lock, we first check to see if the page is null (again). If so, return.
+If not, we need to check if the page was accessed recently, if so, find another frame, if not
+take the frame. This loops 2x, because if we check all of the frames, and all of them were
+accessed recently, the second time around, they will be considered not accessed recently, since
+checking access resets the access bit.
+
 >> B2: Explain your heuristic for deciding whether a page fault for an
 >> invalid virtual address should cause the stack to be extended into
 >> the page that faulted.
+
+The virtual address must meet a number of requirements to be considered eligible for a stack expansion.
+There are many cases where accesses are invalid, and they can be difficult to keep track of if not
+correctly monitored.
+
+First of all, the address must be below the PHYS_BASE address. This means the address must be in valid
+user area. If it is too high up, above the PHYS_BASE, then it is trying to access kernel memory. This
+is not allowed, and will cause the program to be terminated.
+
+Secondly, the virtual address must not be the location of an existing page. If a page already exists,
+it is simply returned. No stack expansion is necessary here.
+
+Third, and the most common exception reached, is that the ESP in the user space must be within 32 bytes
+of the address. Both push and pushA can stretch the boundary by 4 or 32 bytes respectively, and this
+is where stack expansion usually will happen. However, if some ambitious programmer jumps down 500 bytes
+and tries to write, this will not be allowed. We keep track of the user's esp by setting a member of
+the thread struct to equal the esp given when system call interrupt first starts. This way, even
+the kernel can correctly get the user's esp. The check done is simply thread_current() - 32 < address.
+
+The fourth and last check done is to ensure that the user is not taking up too much space. To ensure
+that the stack is not over-sized, a check is done between the user's esp (access and set mentioned
+above), the PHYS_BASE where the user's stack area starts, and the STACK_MAX constant defined in-code
+(currently 1 MB). If the user's esp is more than STACK_MAX away from the PHYS_BASE, then the request
+for an additional page is rejected.
 
 			 MEMORY MAPPED FILES
 			 ===================
@@ -69,6 +115,12 @@ failing and tries again two more times.
 >> C1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+
+No changes were made to any structs, members, or variables.
+We modified the following functions to implement the mmap and munmap functions.
+
+sys_munmap - system call used when unmapping a file
+unmap - helper function used with sys_unmap to write and remove system files
 
 ---- ALGORITHMS ----
 
@@ -88,6 +140,19 @@ swap_out() function if they were dirty.
 
 >> C3: Explain how you determine whether a new file mapping overlaps
 >> any existing segment.
+
+Within the system call, a few checks are initially made to determine if the mapping is legitimate.
+Otherwise the file mapping is fairly safe to run considering how the file system opens and manages
+file writes.
+Initially, the address of must be at the start of a page, that is, if the address given is not
+aligned to where a page would be, the mapping fails and -1 is returned.
+Other than this, however, the mapping is created with a unique handle identifier.
+The requested file is opened, and the mapping struct will keep track of a certain number of
+new, fresh pages which will contain the file information. With more information, pages are allocated
+as needed. Since pages have limited size, many pages may map one file into memory.
+If at any time the address provided with the offset is already mapped to a page, the page_allocate
+function will return null, and the mapping will fail. The map will be unallocated to ensure
+any resources will not be lost.
 
 ---- RATIONALE ----
 
@@ -116,12 +181,27 @@ the quarter.
 >> In your opinion, was this assignment, or any one of the three problems
 >> in it, too easy or too hard?  Did it take too long or too little time?
 
+The assignment was somewhat difficult because the design document did not match to the actual
+code that was provided. While I appreciate the added code, since we were expected to use this
+modified code, we should have been given an updated or modified version of the design document
+that omits or modifies the parts of the code that was already implemented. The biggest problem
+that we initially faced was where to start. It was difficult first looking at new code to see
+what was already implemented vs what we needed to implement.
+
 >> Did you find that working on a particular part of the assignment gave
 >> you greater insight into some aspect of OS design?
+
+Learning about the swap and page in-out functions was difficult, but definitely helped me learn
+more about the subject as a whole. While I would never want to implement something like this
+myself, I understand it more.
 
 >> Is there some particular fact or hint we should give students in
 >> future quarters to help them solve the problems?  Conversely, did you
 >> find any of our guidance to be misleading?
+
+The documentation / problem document was very misleading. Talked about modifying process.c when
+we didn't need to, and the "code we need to write" section didn't say anything about the process.c.
+See above paragraph in too easy / too hard.
 
 >> Do you have any suggestions for the TAs to more effectively assist
 >> students, either for future quarters or the remaining projects?
